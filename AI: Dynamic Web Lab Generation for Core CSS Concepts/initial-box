@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CSS Box Model & Display Lab</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #1a2133;
+    --text: #e8ecf5;
+    --muted: #9aa4bb;
+    --accent: #6ea8fe;
+    --content-color: #6ea8fe;
+    --padding-color: #7bd88f;
+    --border-color: #f2c94c;
+    --margin-color: #f28c8c;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  p.sub { color: var(--muted); margin-top: 0; }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  @media (min-width: 800px) {
+    .layout { grid-template-columns: 340px 1fr; }
+  }
+  .panel {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .panel h2 { font-size: 1rem; margin-top: 0; }
+  .control { margin-bottom: 16px; }
+  .control label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .control label .val { color: var(--text); font-weight: 600; }
+  input[type="range"] { width: 100%; }
+  select {
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    background: #232b42;
+    color: var(--text);
+    border: 1px solid #333d58;
+  }
+  .stage {
+    background: var(--panel);
+    border-radius: 12px;
+    min-height: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    padding: 40px 20px;
+    position: relative;
+  }
+  #box1 {
+    background-color: var(--content-color);
+    background-clip: content-box;
+    border-style: solid;
+    border-color: var(--border-color);
+    outline: 2px dashed var(--margin-color);
+    outline-offset: 0;
+    color: #0f1420;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    text-align: center;
+    position: relative;
+  }
+  /* padding area color shown via a layered background trick */
+  #box1 {
+    background-image:
+      linear-gradient(var(--padding-color), var(--padding-color));
+    background-origin: padding-box;
+    background-clip: padding-box, content-box;
+  }
+  #box1::after {
+    content: "";
+  }
+  #box2 {
+    background: #333d58;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    margin-left: 10px;
+    border-radius: 8px;
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 10px;
+    justify-content: center;
+  }
+  .legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 14px;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>CSS Box Model &amp; Display Lab</h1>
+  <p class="sub">Adjust Box 1's box-model properties and display mode, and watch how it behaves next to Box 2.</p>
+ 
+  <div class="layout">
+    <div class="panel">
+      <h2>Controls — Box 1</h2>
+ 
+      <div class="control">
+        <label>Width <span class="val" id="widthVal">200px</span></label>
+        <input type="range" id="width" min="50" max="500" value="200">
+      </div>
+ 
+      <div class="control">
+        <label>Padding <span class="val" id="paddingVal">20px</span></label>
+        <input type="range" id="padding" min="0" max="60" value="20">
+      </div>
+ 
+      <div class="control">
+        <label>Margin <span class="val" id="marginVal">20px</span></label>
+        <input type="range" id="margin" min="0" max="80" value="20">
+      </div>
+ 
+      <div class="control">
+        <label>Border Width <span class="val" id="borderVal">4px</span></label>
+        <input type="range" id="border" min="0" max="30" value="4">
+      </div>
+ 
+      <div class="control">
+        <label>Display</label>
+        <select id="display">
+          <option value="block" selected>block</option>
+          <option value="inline-block">inline-block</option>
+          <option value="inline">inline</option>
+        </select>
+      </div>
+ 
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--content-color)"></span>Content</span>
+        <span><span class="swatch" style="background:var(--padding-color)"></span>Padding</span>
+        <span><span class="swatch" style="background:var(--border-color)"></span>Border</span>
+        <span><span class="swatch" style="background:var(--margin-color)"></span>Margin (outline)</span>
+      </div>
+    </div>
+ 
+    <div class="stage">
+      <div class="row">
+        <div id="box1">Box 1</div><div id="box2">Box 2</div>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<script>
+  const box1 = document.getElementById('box1');
+  const widthEl = document.getElementById('width');
+  const paddingEl = document.getElementById('padding');
+  const marginEl = document.getElementById('margin');
+  const borderEl = document.getElementById('border');
+  const displayEl = document.getElementById('display');
+ 
+  const widthVal = document.getElementById('widthVal');
+  const paddingVal = document.getElementById('paddingVal');
+  const marginVal = document.getElementById('marginVal');
+  const borderVal = document.getElementById('borderVal');
+ 
+  function update() {
+    const w = widthEl.value, p = paddingEl.value, m = marginEl.value, b = borderEl.value, d = displayEl.value;
+    box1.style.width = w + 'px';
+    box1.style.padding = p + 'px';
+    box1.style.margin = m + 'px';
+    box1.style.borderWidth = b + 'px';
+    box1.style.display = d;
+ 
+    widthVal.textContent = w + 'px';
+    paddingVal.textContent = p + 'px';
+    marginVal.textContent = m + 'px';
+    borderVal.textContent = b + 'px';
+  }
+ 
+  [widthEl, paddingEl, marginEl, borderEl, displayEl].forEach(el => {
+    el.addEventListener('input', update);
+    el.addEventListener('change', update);
+  });
+ 
+  update();
+</script>
+</body>
+</html>
