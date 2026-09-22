@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Flexbox & Grid Playground</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #1a2133;
+    --text: #e8ecf5;
+    --muted: #9aa4bb;
+    --accent: #6ea8fe;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%; margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 60px; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  p.sub { color: var(--muted); margin-top: 0; }
+  .layout { display: grid; grid-template-columns: 1fr; gap: 24px; }
+  @media (min-width: 800px) { .layout { grid-template-columns: 300px 1fr; } }
+ 
+  .panel { background: var(--panel); border-radius: 12px; padding: 18px; }
+  .panel h2 { font-size: 1rem; margin-top: 0; }
+  .control { margin-bottom: 16px; }
+  .control label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+  select {
+    width: 100%; padding: 8px; border-radius: 8px;
+    background: #232b42; color: var(--text); border: 1px solid #333d58;
+  }
+  .control.hidden { display: none; }
+ 
+  .stage {
+    background: var(--panel); border-radius: 12px; min-height: 380px;
+    padding: 24px; overflow: auto;
+  }
+  #container {
+    min-height: 320px;
+    background: #10182b;
+    border: 2px dashed #333d58;
+    border-radius: 10px;
+    padding: 16px;
+    display: block;
+  }
+  .item {
+    background: var(--accent);
+    color: #0f1420;
+    font-weight: 700;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 60px;
+    min-height: 60px;
+    padding: 20px;
+  }
+  .item:nth-child(2) { background: #7bd88f; }
+  .item:nth-child(3) { background: #f2c94c; }
+  .item:nth-child(4) { background: #f28c8c; }
+  .item:nth-child(5) { background: #c9a0f5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Flexbox &amp; Grid Playground</h1>
+  <p class="sub">Change the container's display mode and layout properties, and watch the 5 items respond in real time.</p>
+ 
+  <div class="layout">
+    <div class="panel">
+      <h2>Container Controls</h2>
+ 
+      <div class="control">
+        <label>display</label>
+        <select id="display">
+          <option value="block">block</option>
+          <option value="flex" selected>flex</option>
+          <option value="grid">grid</option>
+        </select>
+      </div>
+ 
+      <div class="control" id="flexDirectionWrap">
+        <label>flex-direction</label>
+        <select id="flexDirection">
+          <option value="row" selected>row</option>
+          <option value="column">column</option>
+        </select>
+      </div>
+ 
+      <div class="control" id="justifyWrap">
+        <label>justify-content</label>
+        <select id="justifyContent">
+          <option value="flex-start" selected>flex-start</option>
+          <option value="center">center</option>
+          <option value="flex-end">flex-end</option>
+          <option value="space-between">space-between</option>
+          <option value="space-around">space-around</option>
+          <option value="space-evenly">space-evenly</option>
+        </select>
+      </div>
+ 
+      <div class="control" id="alignWrap">
+        <label>align-items</label>
+        <select id="alignItems">
+          <option value="stretch" selected>stretch</option>
+          <option value="flex-start">flex-start</option>
+          <option value="center">center</option>
+          <option value="flex-end">flex-end</option>
+        </select>
+      </div>
+ 
+      <div class="control hidden" id="gridColsWrap">
+        <label>grid-template-columns</label>
+        <select id="gridCols">
+          <option value="1fr 1fr">1fr 1fr</option>
+          <option value="1fr 1fr 1fr" selected>1fr 1fr 1fr</option>
+          <option value="1fr 1fr 1fr 1fr">1fr 1fr 1fr 1fr</option>
+          <option value="2fr 1fr 1fr">2fr 1fr 1fr</option>
+          <option value="repeat(5, 1fr)">repeat(5, 1fr)</option>
+        </select>
+      </div>
+    </div>
+ 
+    <div class="stage">
+      <div id="container">
+        <div class="item">1</div>
+        <div class="item">2</div>
+        <div class="item">3</div>
+        <div class="item">4</div>
+        <div class="item">5</div>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<script>
+  const container = document.getElementById('container');
+  const displayEl = document.getElementById('display');
+  const flexDirectionEl = document.getElementById('flexDirection');
+  const justifyEl = document.getElementById('justifyContent');
+  const alignEl = document.getElementById('alignItems');
+  const gridColsEl = document.getElementById('gridCols');
+ 
+  const flexDirectionWrap = document.getElementById('flexDirectionWrap');
+  const justifyWrap = document.getElementById('justifyWrap');
+  const alignWrap = document.getElementById('alignWrap');
+  const gridColsWrap = document.getElementById('gridColsWrap');
+ 
+  function update() {
+    const mode = displayEl.value;
+    container.style.display = mode;
+ 
+    // reset
+    container.style.flexDirection = '';
+    container.style.justifyContent = '';
+    container.style.alignItems = '';
+    container.style.gridTemplateColumns = '';
+    container.style.gap = '12px';
+ 
+    if (mode === 'flex') {
+      flexDirectionWrap.classList.remove('hidden');
+      justifyWrap.classList.remove('hidden');
+      alignWrap.classList.remove('hidden');
+      gridColsWrap.classList.add('hidden');
+ 
+      container.style.flexDirection = flexDirectionEl.value;
+      container.style.justifyContent = justifyEl.value;
+      container.style.alignItems = alignEl.value;
+    } else if (mode === 'grid') {
+      flexDirectionWrap.classList.add('hidden');
+      justifyWrap.classList.remove('hidden');
+      alignWrap.classList.remove('hidden');
+      gridColsWrap.classList.remove('hidden');
+ 
+      container.style.justifyContent = justifyEl.value;
+      container.style.alignItems = alignEl.value;
+      container.style.gridTemplateColumns = gridColsEl.value;
+    } else {
+      // block
+      flexDirectionWrap.classList.add('hidden');
+      justifyWrap.classList.add('hidden');
+      alignWrap.classList.add('hidden');
+      gridColsWrap.classList.add('hidden');
+    }
+  }
+ 
+  [displayEl, flexDirectionEl, justifyEl, alignEl, gridColsEl].forEach(el => {
+    el.addEventListener('change', update);
+  });
+ 
+  update();
+</script>
+</body>
+</html>
+            
