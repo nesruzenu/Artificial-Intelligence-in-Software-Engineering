@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CSS Box Model Lab — Side-Specific Controls</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #1a2133;
+    --text: #e8ecf5;
+    --muted: #9aa4bb;
+    --content-color: #6ea8fe;
+    --padding-color: #7bd88f;
+    --border-color: #f2c94c;
+    --margin-color: #f28c8c;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  p.sub { color: var(--muted); margin-top: 0; }
+  .layout { display: grid; grid-template-columns: 1fr; gap: 24px; }
+  @media (min-width: 900px) { .layout { grid-template-columns: 380px 1fr; } }
+ 
+  .panel { background: var(--panel); border-radius: 12px; padding: 18px; max-height: 80vh; overflow-y: auto; }
+  .panel h2 { font-size: 1rem; margin: 0 0 10px; }
+  .group { margin-bottom: 18px; border-top: 1px solid #2a3350; padding-top: 14px; }
+  .group:first-of-type { border-top: none; padding-top: 0; }
+  .group-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .side-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .control { margin-bottom: 4px; }
+  .control label {
+    display: flex; justify-content: space-between; font-size: 0.75rem;
+    color: var(--muted); margin-bottom: 4px;
+  }
+  .control label .val { color: var(--text); font-weight: 600; }
+  input[type="range"] { width: 100%; }
+  select { width: 100%; padding: 8px; border-radius: 8px; background: #232b42; color: var(--text); border: 1px solid #333d58; }
+ 
+  .stage {
+    background: var(--panel); border-radius: 12px; min-height: 460px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: auto; padding: 60px 20px;
+  }
+  .row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; justify-content: center; }
+ 
+  #box1 {
+    background-color: var(--content-color);
+    background-image: linear-gradient(var(--padding-color), var(--padding-color));
+    background-origin: padding-box;
+    background-clip: padding-box, content-box;
+    border-style: solid;
+    border-color: var(--border-color);
+    outline: 2px dashed var(--margin-color);
+    color: #0f1420;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; text-align: center;
+  }
+  #box2 {
+    background: #333d58; color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px; margin-left: 10px; border-radius: 8px;
+  }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-top: 14px; justify-content: center; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>CSS Box Model Lab — Side-Specific Controls</h1>
+  <p class="sub">Independent top / right / bottom / left sliders for margin, padding, and border, plus corner radius.</p>
+ 
+  <div class="layout">
+    <div class="panel">
+      <div class="group">
+        <div class="group-title">📏 Width &amp; Display</div>
+        <div class="control">
+          <label>Width <span class="val" id="widthVal">200px</span></label>
+          <input type="range" id="width" min="50" max="500" value="200">
+        </div>
+        <div class="control" style="margin-top:10px;">
+          <label>Display</label>
+          <select id="display">
+            <option value="block" selected>block</option>
+            <option value="inline-block">inline-block</option>
+            <option value="inline">inline</option>
+          </select>
+        </div>
+      </div>
+ 
+      <div class="group">
+        <div class="group-title" style="color:var(--margin-color)">⬜ Margin (per side)</div>
+        <div class="side-grid" id="marginGrid"></div>
+      </div>
+ 
+      <div class="group">
+        <div class="group-title" style="color:var(--padding-color)">🟩 Padding (per side)</div>
+        <div class="side-grid" id="paddingGrid"></div>
+      </div>
+ 
+      <div class="group">
+        <div class="group-title" style="color:var(--border-color)">🟨 Border Width (per side)</div>
+        <div class="side-grid" id="borderGrid"></div>
+      </div>
+ 
+      <div class="group">
+        <div class="group-title">◠ Corner Radius</div>
+        <div class="control">
+          <label>Border Radius <span class="val" id="radiusVal">0px</span></label>
+          <input type="range" id="radius" min="0" max="100" value="0">
+        </div>
+      </div>
+ 
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--content-color)"></span>Content</span>
+        <span><span class="swatch" style="background:var(--padding-color)"></span>Padding</span>
+        <span><span class="swatch" style="background:var(--border-color)"></span>Border</span>
+        <span><span class="swatch" style="background:var(--margin-color)"></span>Margin</span>
+      </div>
+    </div>
+ 
+    <div class="stage">
+      <div class="row">
+        <div id="box1">Box 1</div><div id="box2">Box 2</div>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<script>
+  const box1 = document.getElementById('box1');
+  const sides = ['Top', 'Right', 'Bottom', 'Left'];
+ 
+  function buildSideControls(gridId, prop, max, defaultVal) {
+    const grid = document.getElementById(gridId);
+    sides.forEach(side => {
+      const id = prop + side;
+      const wrap = document.createElement('div');
+      wrap.className = 'control';
+      wrap.innerHTML = `
+        <label>${side} <span class="val" id="${id}Val">${defaultVal}px</span></label>
+        <input type="range" id="${id}" min="0" max="${max}" value="${defaultVal}">
+      `;
+      grid.appendChild(wrap);
+    });
+  }
+ 
+  buildSideControls('marginGrid', 'margin', 80, 20);
+  buildSideControls('paddingGrid', 'padding', 60, 20);
+  buildSideControls('borderGrid', 'border', 30, 4);
+ 
+  function applyStyles() {
+    sides.forEach(side => {
+      const m = document.getElementById('margin' + side).value;
+      const p = document.getElementById('padding' + side).value;
+      const b = document.getElementById('border' + side).value;
+      box1.style['margin' + side] = m + 'px';
+      box1.style['padding' + side] = p + 'px';
+      box1.style['border' + side + 'Width'] = b + 'px';
+      document.getElementById('margin' + side + 'Val').textContent = m + 'px';
+      document.getElementById('padding' + side + 'Val').textContent = p + 'px';
+      document.getElementById('border' + side + 'Val').textContent = b + 'px';
+    });
+ 
+    const w = document.getElementById('width').value;
+    const d = document.getElementById('display').value;
+    const r = document.getElementById('radius').value;
+    box1.style.width = w + 'px';
+    box1.style.display = d;
+    box1.style.borderRadius = r + 'px';
+ 
+    document.getElementById('widthVal').textContent = w + 'px';
+    document.getElementById('radiusVal').textContent = r + 'px';
+  }
+ 
+  document.querySelectorAll('input[type="range"], select').forEach(el => {
+    el.addEventListener('input', applyStyles);
+    el.addEventListener('change', applyStyles);
+  });
+ 
+  applyStyles();
+</script>
+</body>
+</html>
