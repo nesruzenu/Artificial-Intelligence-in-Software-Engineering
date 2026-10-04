@@ -1,123 +1,112 @@
-# Task 0: AI Pair Programming — TaskQueue Audit & Refactor
+# SQL to ORM Refactoring: `mysql.connector` to SQLAlchemy 2.0
 
-A structured, AI-assisted audit of a JavaScript `TaskQueue` class for Single
-Responsibility Principle (SRP) violations and scope/closure bugs, followed by
-a refactor and independent verification.
+A small learning project that takes a procedural Python script (raw SQL with `mysql.connector`) and refactors it into a SQLAlchemy 2.0 ORM version that manages a `users` table.
 
-## Files
+## Project files
 
 | File | Description |
 |---|---|
-| [`task_queue_legacy.js`](./task_queue_legacy.js) | The original flawed class. Mixes five responsibilities into `addTask` and contains a real closure bug (`notify()` closes over an undeclared `name` identifier instead of `this.queueName`). Throws `ReferenceError: name is not defined` when run in Node. |
-| [`task_queue_clean.js`](./task_queue_clean.js) | The refactored, implemented version. `addTask` is reduced to validation + array mutation; logging and scheduling are extracted into `TaskQueueLogger` and `QueueScheduler` collaborators; the closure bug is replaced with a pure `isHighPriority()` helper. |
+| `original_raw_sql.py` | The original script. It contains `get_connection()` and `create_user()` using a parameterized query. The other functions mentioned in the source (`get_user_by_username`, `update_user_email`, `delete_user`, `list_users`) were not provided, so they are not included. |
+| `refactored_sqlalchemy.py` | The SQLAlchemy 2.0 version: a declarative `User` model, engine creation, table creation, a Session, add and commit with rollback on error, and a query by username. |
+| `README.md` | This file. |
 
-## The Bug (Confirmed, Not Assumed)
+## Requirements
 
-The legacy code's `notify()` function references a bare `name` identifier
-that is never declared in `addTask`, never passed as a parameter, and is
-**not** `this.queueName`:
+- Python 3.10 or newer (the code uses the `User | None` annotation syntax)
+- SQLAlchemy 2.0 or newer
+- `mysql-connector-python` (the MySQL driver)
+- A running MySQL server with a database named `example_db`
 
-```javascript
-function notify() {
-    if (priority > 9) {
-        console.warn(`High priority task added to ${name}.`); // 'name' is undeclared here
-    }
-}
+```bash
+pip install sqlalchemy mysql-connector-python
 ```
 
-In a browser this silently resolves to the `window.name` global (almost
-certainly not what was intended). In Node's module scope there is no such
-global, so it throws:
+## Setup
+
+1. Create the database. SQLAlchemy creates the `users` table, but not the database itself.
+
+   ```sql
+   CREATE DATABASE example_db;
+   ```
+
+2. Provide the database password through an environment variable instead of writing it in the code.
+
+   macOS / Linux:
+
+   ```bash
+   export DB_PASSWORD="your_real_password"
+   ```
+
+   Windows (PowerShell):
+
+   ```powershell
+   $env:DB_PASSWORD = "your_real_password"
+   ```
+
+   If `DB_PASSWORD` is not set, the code falls back to the placeholder `"yourpassword"`, which will not work on a real server.
+
+3. If your MySQL user or host is not `root` on `localhost`, edit the values in `create_db_engine()`.
+
+## Running
+
+```bash
+python refactored_sqlalchemy.py
+```
+
+On a first run with an empty table, the script creates the user `alice` and then looks it up. You should see output similar to this (the `id` value depends on your table):
 
 ```
-ReferenceError: name is not defined
-    at notify (task_queue_legacy.js:22:50)
-    at TaskQueue.addTask (task_queue_legacy.js:25:3)
+User 'alice' created successfully.
+Found: User(id=1, username='alice', email='alice@example.com')
 ```
 
-This was verified by actually running the file — not just inferred from
-reading the code.
+On a second run, `alice` already exists. The unique constraint rejects the insert, the script rolls back the transaction and prints an "already exists" message, and the lookup that follows still finds the existing user.
 
-## Prompts Used
+## How the refactored code works
 
-### Prompt 1 — Audit (Scope & Closures)
+1. **Model:** `User` maps to the `users` table with an auto-incrementing integer primary key, a unique and non-nullable `username` (`String(50)`), and a unique and non-nullable `email` (`String(255)`). MySQL requires a length for `VARCHAR` columns, which is why `String` has a size.
+2. **Engine:** `create_engine` creates the connection pool. The URL is built with `URL.create()`, which handles special characters in the password safely.
+3. **Table creation:** `Base.metadata.create_all(engine)` creates any missing tables defined by the models. It does not modify tables that already exist.
+4. **Session:** `with Session(engine) as session:` guarantees the session is closed when the block ends.
+5. **Insert:** `session.add(user)` stages the object and `session.commit()` writes it. `IntegrityError` (for example a duplicate username or email) and other `SQLAlchemyError` exceptions trigger `session.rollback()`.
+6. **Query:** `select(User).where(User.username == username)` produces a query with a bound parameter, and `session.scalars(stmt).one_or_none()` returns the matching `User` or `None`.
 
-> Request Code Analysis: Here is a JavaScript method, `addTask`, from a
-> `TaskQueue` class [code pasted]. Please analyze it for scope and closure
-> issues.
-> 1. Trace exactly which variables the inner `notify` function closes over,
->    and where each one comes from (constructor arg, method param, or outer
->    scope).
-> 2. Identify any variables here that should be block-scoped (`let`/`const`)
->    but currently aren't, or that rely on ambiguous/global scope, and
->    explain concretely why that's risky.
-> 3. Walk me through, step by step, how the closure is formed each time
->    `addTask` runs.
+## Why the ORM version is more professional and secure
 
-### Prompt 2 — Refactoring (Single Responsibility Principle)
+- **SQL injection:** SQL injection happens when user input is mixed into the SQL text. With the ORM you do not build SQL strings by hand, so that mistake is much harder to make.
+- **Parameter binding:** Values are sent separately from the SQL statement and are treated as data. Raw SQL can also do this (the original `%s` placeholders do), but it relies on the developer doing it correctly every time. In the ORM it is the default.
+- **Type and schema consistency:** The `User` class is the single definition of the table. Columns are Python attributes, so a typo in a column name fails early, editors can autocomplete, and type hints such as `Mapped[str]` can be checked by tools.
+- **Maintainability:** Rows are objects (`user.email`) instead of tuples (`row[2]`), and a schema change is made in one place. Tools such as Alembic can generate migrations from model changes.
+- **Database portability:** SQLAlchemy dialects translate the same Python code into the SQL of each database, so moving to another database mostly means changing the connection URL and driver. Portability is not perfect for database-specific features.
+- **Transaction management:** The Session collects changes and writes them together on `commit()`. `rollback()` discards everything since the last commit if something fails.
 
-> Focusing only on the Single Responsibility Principle: list every distinct
-> responsibility currently living inside `addTask` (I count at least: input
-> validation, mutating state, first-task detection/scheduling, console
-> logging, and priority-based warning).
->
-> Then refactor the class so `addTask` does nothing but validate and push
-> the task onto `this.tasks`. Extract the logging and "start processing on
-> first task" scheduling into a separate class or function.
->
-> After the refactor, explain specifically why it's now easier to unit test
-> and maintain.
+Note that the original `create_user` already used a parameterized query, so it was not vulnerable to injection. The comparison above is between the ORM and raw SQL in general, including the unsafe style of building queries with string formatting:
 
-### Prompt 3 — Final Verification
+```python
+# Unsafe: never build SQL this way
+sql = f"SELECT * FROM users WHERE username = '{username}'"
+```
 
-> Here is my implemented `task_queue_clean.js` file [code pasted]. Compare
-> it against the original `task_queue_legacy.js`. Confirm specifically:
-> 1. Has the `notify()` closure bug (the unbound `name` reference) been
->    fully resolved, with all variables now either explicit parameters or
->    properly scoped?
-> 2. Does `addTask` now have exactly one responsibility (validate + add),
->    with logging and scheduling fully extracted?
-> 3. Is the original public behavior preserved — a task still gets pushed,
->    `_startProcessing()` still fires on the first task, and the
->    high-priority warning still fires above the same threshold?
-> 4. Flag anything you'd still consider a code smell or something you'd
->    change with more time.
+## Trying it without MySQL (optional)
 
-## Critique (Quality / Fit / Understanding / Correctness)
+To test the logic without a MySQL server, temporarily replace the engine creation in `create_db_engine()` with SQLite, which is included with Python and needs no extra driver:
 
-- **Quality** — Clear collaborator names (`TaskQueueLogger`,
-  `QueueScheduler`), narrow public methods, and the magic number `9` pulled
-  into a named `HIGH_PRIORITY_THRESHOLD` constant.
-- **Fit** — No over-engineering (no event bus, no DI container) for a
-  ~15-line class; plain constructor-injected collaborators are the right
-  size of solution here.
-- **Understanding** — Traced the wiring by hand: `QueueScheduler` holds a
-  back-reference to its `TaskQueue` (`this.scheduler = new
-  QueueScheduler(this)`), passed before the constructor finishes
-  initializing `this.tasks`/`this.logger`. This is safe only because
-  `maybeStart()` isn't invoked until `addTask()` runs later, by which point
-  construction has completed.
-- **Correctness** — Verified by execution, not inspection: the legacy file
-  throws in Node; the refactored file runs cleanly, pushes tasks correctly,
-  triggers `_startProcessing()` on the first task, and fires the
-  high-priority warning only above the same threshold as before.
+```python
+return create_engine("sqlite:///test.db")
+```
 
-## Reflection
+## Troubleshooting
 
-LLMs are pattern-matching engines, not code executors, which means their
-confidence in an explanation isn't proof it's correct — I only knew the
-`notify()` closure bug was a real, breaking issue (not just a style nit)
-after actually running the legacy file in Node and watching it throw
-`ReferenceError: name is not defined`. Asking the AI to audit for
-structural problems (SRP, closures) rather than just "fix it" forced it to
-articulate *why* each piece was wrong — which variables closed over what,
-which responsibility belonged to which collaborator — turning the exercise
-into something I could verify and learn from, instead of a black-box diff
-I'd have to trust blindly.
+| Problem | Likely cause |
+|---|---|
+| `Access denied for user 'root'` | Wrong password or user. Check `DB_PASSWORD` and the values in `create_db_engine()`. |
+| `Unknown database 'example_db'` | The database has not been created. Run `CREATE DATABASE example_db;`. |
+| `Can't connect to MySQL server` | The server is not running or the host/port is wrong. |
+| `ModuleNotFoundError: sqlalchemy` or `mysql` | Packages are not installed in the Python environment you are using. Re-run the `pip install` command. |
+| `TypeError` on `User \| None` | Python version is older than 3.10. |
 
-That distinction is exactly what a linter can't give you: ESLint would
-never have flagged `notify()` as a design smell, only a human- or
-AI-guided audit reasoning about intent versus scope could catch it. The
-AI's pattern-matching was most valuable when aimed at *explaining*
-structure rather than silently rewriting it — that's what made the output
-something I could critique, verify by execution, and actually learn from.
+## Limitations and next steps
+
+- Only creating a user and finding one by username are implemented. Update, delete, and list operations can be added using the same Session pattern.
+- `create_all` does not change existing tables. For schema changes in a real project, use a migration tool such as Alembic.
+- The script has not been tested against a live MySQL server in this project; test it in your own environment first.
